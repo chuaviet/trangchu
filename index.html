@@ -80,6 +80,16 @@ main{height:calc(100% - 58px);overflow:auto}
 @keyframes rg{to{transform:scale(5);opacity:0}}
 .sheet{font-size:max(15px,calc(var(--u)*3.8))}
 @media (prefers-reduced-motion:reduce){.p,.smoke,.petal{animation:none}}
+#bg{transform:scale(1.06);transition:transform 1s linear}
+#fg{position:absolute;inset:0 -4%;z-index:2;pointer-events:none;transition:transform 1s linear}
+#fg svg,#fg img{width:100%;height:100%;display:block;object-fit:cover}
+.p .b>svg,.p .b>img{transform:scaleX(var(--f,1))}
+.p.med .b::before{content:"";position:absolute;left:-18%;right:-18%;top:-12%;bottom:-6%;border-radius:50%;background:radial-gradient(#ffd45a77,#ffd45a00 70%);animation:au 3s ease-in-out infinite}
+@keyframes au{50%{opacity:.45}}
+.p.walk .b{animation:step .35s ease-in-out infinite}
+@keyframes step{50%{transform:translateY(calc(var(--u)*-1.2))}}
+.acts #medb{background:#e8b23a;color:#1a1405;border-color:#e8b23a}
+#stage{touch-action:manipulation;cursor:pointer}
 /* form */
 .form{max-width:520px;margin:0 auto;padding:16px;display:grid;gap:10px;align-content:start}
 .form input,.form textarea,.item input,.item textarea{padding:11px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);width:100%}
@@ -122,10 +132,10 @@ main{height:calc(100% - 58px);overflow:auto}
 <section id="adm-v" class="hist hidden"></section>
 </main>
 <div id="hall" class="hidden"><div id="stage">
-<div id="bg"></div><div id="seats"></div><div id="fx"></div>
+<div id="bg"></div><div id="seats"></div><div id="fx"></div><div id="fg"></div>
 <div class="top"><button class="btn" id="leave">Rời chùa</button><div class="ttl"><h2 id="hn"></h2><small id="hc"></small><br><small id="pt"></small> <small id="tm"></small></div><button class="btn o" id="mus" aria-label="Bật hoặc tắt nhạc">🔊</button></div>
 <div class="rank" id="rank"></div><div id="feed"></div>
-<div class="acts"><button class="btn o" data-a="incense">🪔 Thắp hương</button><button class="btn o" data-a="bell">🔔 Gõ chuông</button><button class="btn o" data-a="flower">🌸 Dâng hoa</button><button class="btn o" id="infob">📜 Lịch sử, bài khấn</button></div>
+<div class="acts"><button class="btn" id="medb">🧘 Ngồi thiền</button><button class="btn o" data-a="incense">🪔 Thắp hương</button><button class="btn o" data-a="bell">🔔 Gõ chuông</button><button class="btn o" data-a="flower">🌸 Dâng hoa</button><button class="btn o" id="infob">📜 Lịch sử, bài khấn</button></div>
 <div id="info" class="sheet hidden">
 <div class="row"><button class="btn o on" id="ib-h">Lịch sử</button><button class="btn o" id="ib-p">Bài khấn</button><button class="btn o" id="ix" style="margin-left:auto">Đóng</button></div>
 <div id="itx"></div>
@@ -182,7 +192,8 @@ const Store={
  async addVisit(v){await addDoc(collection(fs,"visits"),v);await updateDoc(doc(fs,"users",v.uid),{points:increment(v.points)})},
  async visits(u){const s=await getDocs(query(collection(fs,"visits"),where("uid","==",u)));return s.docs.map(d=>d.data()).sort((a,b)=>b.start-a.start)},
  act(r,a){return update(r,{act:a})},
- enter(tid,u,code,pts){const r=ref(rt,`presence/${tid}/${u}`);set(r,{code,ts:Date.now(),pts:pts||0});onDisconnect(r).remove();return r},
+ upd(r,o){return update(r,o)},
+ enter(tid,u,code,pts,ex){const r=ref(rt,`presence/${tid}/${u}`);set(r,{code,ts:Date.now(),pts:pts||0,...(ex||{})});onDisconnect(r).remove();return r},
  leave(r){return remove(r)},
  watch(path,cb){return onValue(ref(rt,path),s=>cb(s.val()||{}))}
 };
@@ -270,54 +281,89 @@ const ASSET="assets/hall/";
 function probe(src,cb){const i=new Image();i.onload=()=>cb(true);i.onerror=()=>cb(false);i.src=src}
 const FB_BG=`<svg viewBox="0 0 360 640" preserveAspectRatio="xMidYMid slice"><defs><radialGradient id="hl"><stop offset="0" stop-color="#ffe08a"/><stop offset="1" stop-color="#ffe08a" stop-opacity="0"/></radialGradient><linearGradient id="wl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4a120b"/><stop offset="1" stop-color="#8a3414"/></linearGradient><linearGradient id="fl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a1608"/><stop offset="1" stop-color="#1c0a04"/></linearGradient></defs><rect width="360" height="340" fill="url(#wl)"/><rect y="330" width="360" height="310" fill="url(#fl)"/><circle cx="180" cy="200" r="130" fill="url(#hl)"/><g fill="#e8b23a"><ellipse cx="180" cy="262" rx="78" ry="52"/><path d="M118 262 Q180 150 242 262Z"/><circle cx="180" cy="168" r="27" fill="#f6d27a"/></g><ellipse cx="180" cy="285" rx="100" ry="14" fill="#c98a24"/><rect x="30" y="300" width="300" height="44" fill="#5a1a0d" stroke="#c99a2e" stroke-width="3"/><g fill="#f7efe0"><circle cx="70" cy="296" r="9"/><circle cx="90" cy="300" r="8"/><circle cx="290" cy="296" r="9"/><circle cx="270" cy="300" r="8"/></g><polygon points="150,344 210,344 300,640 60,640" fill="#a3261c"/><polygon points="150,344 156,344 90,640 60,640" fill="#d9a441"/><polygon points="204,344 210,344 300,640 270,640" fill="#d9a441"/><g fill="#7a1c10"><rect x="0" y="40" width="26" height="520"/><rect x="334" y="40" width="26" height="520"/></g><g fill="#e2552b"><circle cx="52" cy="90" r="16"/><circle cx="308" cy="90" r="16"/><circle cx="52" cy="150" r="13"/><circle cx="308" cy="150" r="13"/></g></svg>`;
 const FB_MONK=`<svg viewBox="0 0 100 100"><ellipse cx="50" cy="90" rx="42" ry="9" fill="#9c1f18"/><path d="M18 88 Q22 48 50 46 Q78 48 82 88Z" fill="#8a8d93"/><path d="M34 62 Q50 74 66 62" stroke="#6d7077" stroke-width="3" fill="none"/><circle cx="50" cy="32" r="20" fill="#f6d9b4"/><path d="M41 32 q4 3 8 0M53 32 q4 3 8 0" stroke="#5a3a28" stroke-width="2" fill="none"/><ellipse cx="50" cy="73" rx="9" ry="5" fill="#f6d9b4"/></svg>`;
-const SLOTS=(()=>{const a=[];for(let r=0;r<6;r++)for(const sd of[0,1])for(let c=0;c<3;c++){const x=[9,20,31][c]+(r%2?4:0);a.push({x:sd?100-x:x,y:52+r*6.8,s:.62+r*.076,r})}return a})();
+const FB_STAND=`<svg viewBox="0 0 100 100"><ellipse cx="50" cy="95" rx="22" ry="4" fill="#0006"/><path d="M30 95 Q27 52 50 45 Q73 52 70 95Z" fill="#8a8d93"/><path d="M33 60 Q42 80 50 77 Q58 80 67 60" stroke="#6d7077" stroke-width="4" fill="none"/><circle cx="50" cy="30" r="18" fill="#f6d9b4"/><path d="M42 30 q4 3 7 0M52 30 q4 3 7 0" stroke="#5a3a28" stroke-width="2" fill="none"/></svg>`;
+const FB_FG=`<svg viewBox="0 0 360 640" preserveAspectRatio="xMidYMid slice"><defs><linearGradient id="pl" x1="0" x2="1"><stop offset="0" stop-color="#2a0905"/><stop offset="1" stop-color="#5a1a0d"/></linearGradient></defs><rect x="0" y="0" width="30" height="640" fill="url(#pl)"/><rect x="330" y="0" width="30" height="640" fill="url(#pl)"/><g stroke="#c99a2e" stroke-width="1.5"><line x1="62" y1="0" x2="62" y2="40"/><line x1="298" y1="0" x2="298" y2="40"/></g><g><ellipse cx="62" cy="58" rx="17" ry="22" fill="#e2552b"/><ellipse cx="298" cy="58" rx="17" ry="22" fill="#e2552b"/></g></svg>`;
 const fxEl=(c,css,ms)=>{const e=document.createElement("div");e.className=c;e.style.cssText=css;$("fx").appendChild(e);setTimeout(()=>e.remove(),ms);return e};
 const fxSmoke=()=>{for(let i=0;i<7;i++)fxEl("smoke",`left:${44+Math.random()*10}%;top:60%;animation-delay:${i*.35}s`,5000)};
 const fxRing=()=>fxEl("ring","",1700);
 const fxPetals=()=>{for(let i=0;i<10;i++)fxEl("petal",`left:${Math.random()*95}%;animation-delay:${Math.random()*1.5}s`,5600).textContent="🌸"};
 function ding(){if(muted)return;try{const c=window._ac||(window._ac=new (window.AudioContext||window.webkitAudioContext)()),t=c.currentTime,g=c.createGain();c.resume();g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.35,t+.02);g.gain.exponentialRampToValueAtTime(.0001,t+4);g.connect(c.destination);[[196,1],[392,.4],[527,.2]].forEach(([f,v])=>{const o=c.createOscillator(),og=c.createGain();o.frequency.value=f;og.gain.value=v;o.connect(og);og.connect(g);o.start(t);o.stop(t+4.2)})}catch(e){}}
 const ACT={incense:{say:"vừa thắp hương",fx:fxSmoke},bell:{say:"vừa gõ chuông",fx:()=>{fxRing();ding()}},flower:{say:"vừa dâng hoa",fx:fxPetals}};
+const XMIN=6,XMAX=94,YMIN=56,YMAX=86;
 async function enterHall(t){
  const mine=await Store.visits(user.uid),today=new Date().setHours(0,0,0,0);
  const earned=mine.filter(v=>v.start>=today).reduce((s,v)=>s+v.points,0);
- const r=Store.enter(t.id,user.uid,prof.code,prof.points||0);
+ const sx=38+Math.random()*24,sy=82+Math.random()*4;
+ const r=Store.enter(t.id,user.uid,prof.code,prof.points||0,{x:sx,y:sy,med:false});
  $("hall").classList.remove("hidden");$("hn").textContent=t.n;$("pt").textContent="Công đức: "+(prof.points||0);
  const st=$("stage"),fit=()=>st.style.setProperty("--u",st.clientWidth/100+"px");addEventListener("resize",fit);fit();
- const bg=$("bg"),url=(T[t.id]||t).bg||ASSET+"bg.webp";bg.style.backgroundImage="";bg.innerHTML=FB_BG;
+ const bg=$("bg"),fg=$("fg"),url=(T[t.id]||t).bg||ASSET+"bg.webp";
+ bg.style.backgroundImage="";bg.innerHTML=FB_BG;fg.innerHTML=FB_FG;
  probe(url,ok=>{if(ok&&hallState&&hallState.t.id==t.id){bg.innerHTML="";bg.style.backgroundImage=`url("${url}")`}});
- let mimg=null,peers={},first=true;const seatOf={},used=new Set(),last={};
- const body=()=>mimg?`<img src="${mimg}" alt="" draggable="false">`:FB_MONK;
- const render=()=>{const box=$("seats");box.textContent="";
-  Object.keys(peers).sort((a,b)=>SLOTS[seatOf[a]].y-SLOTS[seatOf[b]].y).forEach(u=>{
-   const s=SLOTS[seatOf[u]],e=document.createElement("div");e.className="p"+(u==user.uid?" me":"");e.style.cssText=`left:${s.x}%;top:${s.y}%;--s:${s.s};z-index:${s.r}`;
-   const n=document.createElement("span");n.className="nm";n.textContent=peers[u].code;
-   const b=document.createElement("div");b.className="b";b.innerHTML=body();e.append(n,b);box.appendChild(e)})};
- probe(ASSET+"monk.webp",ok=>{if(ok){mimg=ASSET+"monk.webp";render()}});
+ probe(ASSET+"fg.webp",ok=>{if(ok&&hallState)fg.innerHTML=`<img src="${ASSET}fg.webp" alt="">`});
+ const par=(x,d)=>{const k=(50-x)/50;bg.style.transitionDuration=fg.style.transitionDuration=d+"s";bg.style.transform=`translateX(${k*1.2}%) scale(1.06)`;fg.style.transform=`translateX(${-k*3}%)`};
+ par(sx,0);
+ let mimg=null,wimg=null,imgKey=0,peers={},first=true;const els={},pos={},lastAct={},lastMed={};
+ const body=med=>{const i=med?mimg:(wimg||mimg);return i?`<img src="${i}" alt="" draggable="false">`:(med?FB_MONK:FB_STAND)};
+ const upd=u=>{const p=peers[u];if(!p)return;let e=els[u];
+  if(!e){e=els[u]=document.createElement("div");e.className="p"+(u==user.uid?" me":"");e.innerHTML='<span class="nm"></span><div class="b"></div>';e.querySelector(".nm").textContent=p.code;$("seats").appendChild(e)}
+  const x=p.x!=null?p.x:30+hash(u)%40,y=p.y!=null?p.y:84,o=pos[u];
+  if(!o||o.x!=x||o.y!=y){
+   const dx=o?x-o.x:0,dy=o?(y-o.y)*1.78:0,dist=Math.hypot(dx,dy),dur=o?dist/30:0;
+   e.style.transition=`left ${dur}s linear,top ${dur}s linear`;e.style.left=x+"%";e.style.top=y+"%";e.style.zIndex=Math.round(y);
+   e.style.setProperty("--s",.5+(y-50)/42*.6);pos[u]={x,y};
+   if(dist>.3){e.style.setProperty("--f",dx<0?-1:1);e.classList.add("walk");clearTimeout(e._w);e._w=setTimeout(()=>e.classList.remove("walk"),dur*1000)}
+   if(u==user.uid)par(x,dur)}
+  const med=!!p.med;
+  if(e.dataset.m!==String(med)||e.dataset.k!==String(imgKey)){e.querySelector(".b").innerHTML=body(med);e.dataset.m=String(med);e.dataset.k=String(imgKey)}
+  e.classList.toggle("med",med)};
+ const refresh=()=>Object.keys(peers).forEach(upd);
+ probe(ASSET+"monk.webp",ok=>{if(ok){mimg=ASSET+"monk.webp";imgKey++;refresh()}});
+ probe(ASSET+"walk.webp",ok=>{if(ok){wimg=ASSET+"walk.webp";imgKey++;refresh()}});
  const rank=()=>{const k=$("rank");k.innerHTML="<b>Bảng công đức</b>";
   Object.values(peers).sort((a,b)=>(b.pts||0)-(a.pts||0)).slice(0,5).forEach((p,i)=>{const d=document.createElement("div"),a=document.createElement("span"),c=document.createElement("span");a.textContent=(i+1)+". "+p.code;c.textContent=p.pts||0;d.append(a,c);k.appendChild(d)})};
  const say=m=>{const s=document.createElement("span");s.textContent=m;const f=$("feed");f.appendChild(s);while(f.children.length>3)f.firstChild.remove();setTimeout(()=>s.remove(),6000)};
- const place=u=>{let i=hash(u)%SLOTS.length,n=0;while(used.has(i)&&n<SLOTS.length){i=(i+1)%SLOTS.length;n++}used.add(i);seatOf[u]=i};
  const un=Store.watch(`presence/${t.id}`,d=>{
-  for(const u in peers)if(!d[u]){used.delete(seatOf[u]);delete seatOf[u];delete last[u]}
+  for(const u in els)if(!d[u]){els[u].remove();delete els[u];delete pos[u];delete lastAct[u];delete lastMed[u]}
   for(const u in d){
-   if(seatOf[u]==null){place(u);if(!first&&u!=user.uid)say(d[u].code+" vừa vào chùa")}
-   const a=d[u].act;if(a&&ACT[a.k]&&a.ts!=last[u]){if(!first&&u!=user.uid){say(d[u].code+" "+ACT[a.k].say);ACT[a.k].fx()}last[u]=a.ts}}
-  peers=d;first=false;render();rank();$("hc").textContent=Object.keys(d).length+" phật tử đang lễ"});
+   if(!els[u]&&!first&&u!=user.uid)say(d[u].code+" vừa vào chùa");
+   const a=d[u].act;if(a&&ACT[a.k]&&a.ts!=lastAct[u]){if(!first&&u!=user.uid){say(d[u].code+" "+ACT[a.k].say);ACT[a.k].fx()}lastAct[u]=a.ts}
+   const m=!!d[u].med;if(!first&&u!=user.uid&&m&&!lastMed[u])say(d[u].code+" đang ngồi thiền");lastMed[u]=m}
+  peers=d;first=false;Object.keys(d).forEach(upd);rank();$("hc").textContent=Object.keys(d).length+" phật tử trong chùa"});
+ /* Di chuyển: chạm vào sảnh hoặc dùng phím mũi tên / WASD */
+ let medMs=0,medT=0,lastMv=0;
+ const medNow=()=>medMs+(medT?Date.now()-medT:0);
+ const setMed=on=>{if(on==!!medT)return;if(on)medT=Date.now();else{medMs+=Date.now()-medT;medT=0}
+  peers[user.uid]={...peers[user.uid],med:on};upd(user.uid);
+  $("medb").textContent=on?"🧍 Đứng dậy":"🧘 Ngồi thiền";Store.upd(r,{med:on}).catch(()=>{});
+  say(on?"Bạn bắt đầu ngồi thiền, công đức đang được ghi nhận":"Bạn đã đứng dậy")};
+ const moveTo=(x,y)=>{if(Date.now()-lastMv<120)return;lastMv=Date.now();
+  x=Math.max(XMIN,Math.min(XMAX,x));y=Math.max(YMIN,Math.min(YMAX,y));
+  if(medT)setMed(false);
+  peers[user.uid]={...peers[user.uid],x,y,med:false};upd(user.uid);Store.upd(r,{x,y,med:false}).catch(()=>{})};
+ st.onpointerdown=e=>{if(e.target.closest(".top,.rank,.acts,.sheet"))return;const b=st.getBoundingClientRect();moveTo((e.clientX-b.left)/b.width*100,(e.clientY-b.top)/b.height*100)};
+ const kd=e=>{if(e.target.tagName=="TEXTAREA"||e.target.tagName=="INPUT")return;const me=pos[user.uid]||{x:sx,y:sy};
+  const k=e.key.toLowerCase(),D={arrowleft:[-5,0],a:[-5,0],arrowright:[5,0],d:[5,0],arrowup:[0,-3.5],w:[0,-3.5],arrowdown:[0,3.5],s:[0,3.5]}[k];
+  if(D){e.preventDefault();moveTo(me.x+D[0],me.y+D[1])}};
+ addEventListener("keydown",kd);
+ $("medb").textContent="🧘 Ngồi thiền";$("medb").onclick=()=>setMed(!medT);
  let cd=0;
  document.querySelectorAll(".acts [data-a]").forEach(b=>b.onclick=()=>{if(Date.now()<cd)return;cd=Date.now()+2000;const k=b.dataset.a;ACT[k].fx();say("Bạn "+ACT[k].say);Store.act(r,{k,ts:Date.now()}).catch(()=>{})});
- const t0=Date.now(),iv=setInterval(()=>{const s=Math.floor((Date.now()-t0)/1000);$("tm").textContent=`· ${Math.floor(s/60)}:${String(s%60).padStart(2,"0")}`},1000);
- hallState={r,t,t0,earned,stop(){clearInterval(iv);un();removeEventListener("resize",fit);["seats","fx","feed"].forEach(i=>$(i).textContent="")}};
+ const t0=Date.now(),iv=setInterval(()=>{const s=Math.floor(medNow()/1000);$("tm").textContent=`· thiền ${Math.floor(s/60)}:${String(s%60).padStart(2,"0")}`},1000);
+ $("tm").textContent="· thiền 0:00";
+ say("Chạm vào sảnh để đi lại. Bấm “Ngồi thiền” để ghi nhận công đức.");
+ hallState={r,t,t0,earned,med:medNow,stop(){clearInterval(iv);un();removeEventListener("resize",fit);removeEventListener("keydown",kd);st.onpointerdown=null;["seats","fx","feed"].forEach(i=>$(i).textContent="")}};
 }
 $("leave").onclick=leaveHall;
 addEventListener("pagehide",()=>{if(hallState)Store.leave(hallState.r)});
 async function leaveHall(){
  const h=hallState;if(!h)return;hallState=null;h.stop();au&&au.stop();await Store.leave(h.r);
  $("hall").classList.add("hidden");$("info").classList.add("hidden");
- const mins=Math.floor((Date.now()-h.t0)/60000);
- /* Quy tắc điểm: 10 điểm khi ở đủ 1 phút, +2 điểm mỗi phút (tối đa 20 phút), tối đa 100 điểm/ngày */
+ const mins=Math.floor(h.med()/60000);
+ /* Quy tắc điểm (chỉ tính thời gian bấm "Ngồi thiền"): 10 điểm khi đủ 1 phút, +2 điểm mỗi phút (tối đa 20 phút), tối đa 100 điểm/ngày */
  let pts=mins<1?0:10+Math.min(mins,20)*2;pts=Math.max(0,Math.min(pts,100-h.earned));
  if(mins>=1){await Store.addVisit({uid:user.uid,templeId:h.t.id,start:h.t0,end:Date.now(),mins,points:pts});prof.points+=pts;showMe();
-  toast(pts?`+${pts} điểm công đức. A Di Đà Phật!`:"Hôm nay bạn đã đạt tối đa điểm công đức.")}
+  toast(pts?`+${pts} điểm công đức. A Di Đà Phật!`:"Hôm nay bạn đã đạt tối đa điểm công đức.")}else toast("Bạn chưa ngồi thiền đủ 1 phút nên chưa có điểm công đức.")
 }
 
 /* ===== 9. SỬA ID ===== */
@@ -394,7 +440,7 @@ async function loadHist(){
  if(p){prof=p;showMe()}box.textContent="";
  const tt=document.createElement("div");tt.innerHTML=`<small class="me">Tổng điểm công đức</small><div class="total"></div>`;tt.querySelector(".total").textContent=prof.points;box.appendChild(tt);
  const K={temple:"Đề xuất chùa",history:"Đề xuất lịch sử",prayer:"Đề xuất bài khấn"},f=x=>new Date(x).toLocaleString("vi-VN");
- const all=[...vs.map(v=>({at:v.start,a:(T[v.templeId]||{n:v.templeId}).n,b:`${f(v.start)} · ${v.mins} phút · +${v.points} điểm`})),...ms.map(m=>({at:m.at,a:K[m.kind]+": "+m.t,b:`${f(m.at)} · +${m.points} điểm`}))].sort((x,y)=>y.at-x.at);
+ const all=[...vs.map(v=>({at:v.start,a:(T[v.templeId]||{n:v.templeId}).n,b:`${f(v.start)} · thiền ${v.mins} phút · +${v.points} điểm`})),...ms.map(m=>({at:m.at,a:K[m.kind]+": "+m.t,b:`${f(m.at)} · +${m.points} điểm`}))].sort((x,y)=>y.at-x.at);
  if(!all.length){const q=document.createElement("p");q.textContent="Bạn chưa có hoạt động nào. Mở Bản đồ và chọn một ngôi chùa để bắt đầu.";box.appendChild(q);return}
  all.forEach(v=>{const e=document.createElement("div");e.className="item";e.innerHTML="<b></b><small></small>";e.querySelector("b").textContent=v.a;e.querySelector("small").textContent=v.b;box.appendChild(e)})
 }
