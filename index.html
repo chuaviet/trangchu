@@ -89,7 +89,7 @@ main{height:calc(100% - 58px);overflow:auto}
 <div id="hall" class="hidden">
 <canvas id="cv"></canvas>
 <div class="hud"><div><h2 id="hn" style="font-size:18px"></h2><small id="hc" style="color:var(--mute)"></small></div><button class="btn" id="leave">Rời chùa</button></div>
-<div class="hud2"><span id="tm" class="me" style="align-self:center"></span><button class="btn o" id="infob">📜 Lịch sử và bài khấn</button></div>
+<div class="hud2"><span id="tm" class="me" style="align-self:center"></span><button class="btn o" id="infob">📜 Lịch sử và bài khấn</button><button class="btn o" id="mus" aria-label="Bật hoặc tắt nhạc">🔊</button></div>
 <div id="info" class="sheet hidden">
 <div class="row"><button class="btn o on" id="ib-h">Lịch sử</button><button class="btn o" id="ib-p">Bài khấn</button><button class="btn o" id="ix" style="margin-left:auto">Đóng</button></div>
 <div id="itx"></div>
@@ -112,6 +112,8 @@ const CFG={apiKey:"AIzaSyDFMS650Ffj2_pwrqo_Vrj_T0j4kJXA6JI",authDomain:"chua-vie
 
 /* Tùy chọn: file mô hình nhân vật 3D (.glb) đặt trong repo, ví dụ "assets/avatar.glb". Để trống = dùng nhân vật có sẵn. */
 const AVATAR_GLB="";
+/* Tùy chọn: file nhạc nền (.mp3) của bạn, ví dụ "assets/nhac.mp3". Để trống = nhạc chuông bát và âm nền êm do trình duyệt tự tạo. */
+const MUSIC_URL="";
 
 /* ===== 2. DỮ LIỆU CHÙA HÀ NỘI (toạ độ gần đúng, hãy kiểm tra lại) ===== */
 const TEMPLES=[
@@ -159,6 +161,26 @@ const km=(a,b,c,d)=>{const r=x=>x*Math.PI/180,h=Math.sin(r(c-a)/2)**2+Math.cos(r
 const hash=s=>{let h=0;for(const c of s)h=(h*31+c.charCodeAt(0))>>>0;return h};
 let user=null,prof=null,counts={},pos=null,hallState=null,map=null;
 
+/* ===== NHẠC NỀN ===== */
+let au=null,muted=false;
+function startMusic(){
+ if(!au){
+  if(MUSIC_URL){const a=new Audio(MUSIC_URL);a.loop=true;a.volume=.45;au={play(){a.play().catch(()=>{})},stop(){a.pause()},mute(m){a.muted=m}}}
+  else{const C=window.AudioContext||window.webkitAudioContext;if(!C)return;
+   const ctx=new C(),master=ctx.createGain();master.gain.value=.5;master.connect(ctx.destination);
+   const dg=ctx.createGain();dg.gain.value=.06;dg.connect(master);
+   [110,164.81,220].forEach((f,i)=>{const o=ctx.createOscillator();o.type="sine";o.frequency.value=f;o.detune.value=(i-1)*4;o.connect(dg);o.start()});
+   const lfo=ctx.createOscillator(),lg=ctx.createGain();lfo.frequency.value=.12;lg.gain.value=.03;lfo.connect(lg);lg.connect(dg.gain);lfo.start();
+   const notes=[220,277.18,329.63,440,554.37];let tm;
+   const bowl=()=>{const f=notes[Math.floor(Math.random()*notes.length)],t=ctx.currentTime,g=ctx.createGain();
+    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.18,t+.03);g.gain.exponentialRampToValueAtTime(.0001,t+7);g.connect(master);
+    [[1,1],[2.76,.35],[5.4,.12]].forEach(([m,v])=>{const o=ctx.createOscillator(),og=ctx.createGain();o.frequency.value=f*m;og.gain.value=v;o.connect(og);og.connect(g);o.start(t);o.stop(t+7.5)})};
+   const loop=()=>{bowl();tm=setTimeout(loop,8000+Math.random()*6000)};
+   au={play(){ctx.resume();clearTimeout(tm);loop()},stop(){clearTimeout(tm);ctx.suspend()},mute(m){master.gain.value=m?0:.5}}}
+ }
+ au.mute(muted);au.play();
+}
+
 /* ===== 5. ĐĂNG NHẬP ===== */
 const errMsg=e=>({"auth/invalid-credential":"Sai email hoặc mật khẩu.","auth/email-already-in-use":"Email này đã có tài khoản.","auth/weak-password":"Mật khẩu cần ít nhất 6 ký tự.","auth/invalid-email":"Email không hợp lệ.","auth/unauthorized-domain":"Tên miền web chưa được thêm vào Authorized domains trong Firebase.","auth/operation-not-allowed":"Chưa bật phương thức đăng nhập này trong Firebase Authentication.","auth/popup-blocked":"Trình duyệt đang chặn cửa sổ đăng nhập, hãy cho phép popup.","auth/popup-closed-by-user":"Bạn đã đóng cửa sổ đăng nhập.","auth/network-request-failed":"Lỗi mạng, hãy thử lại."}[e.code]||("Không đăng nhập được ("+(e.code||e.message)+"). Kiểm tra lại cấu hình Firebase."));
 const run=f=>async()=>{$("err").textContent="";try{await f()}catch(e){$("err").textContent=errMsg(e)}};
@@ -187,7 +209,8 @@ function syncMarkers(){if(!map)return;temples.forEach(t=>{if(!mk[t.id])mk[t.id]=
 function initMap(){
  if(!map){
   map=L.map("map").setView([21.03,105.84],11);
-  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:18,attribution:"© OpenStreetMap"}).addTo(map);
+  const carto=L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",{subdomains:"abcd",maxZoom:19,referrerPolicy:"origin",attribution:"© OpenStreetMap © CARTO"}).addTo(map);
+  let bad=0;carto.on("tileerror",()=>{if(++bad==4){map.removeLayer(carto);L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:18,referrerPolicy:"origin",attribution:"© OpenStreetMap"}).addTo(map)}});
   syncMarkers();map.on("click",onMapClick);
   Store.watch("presence",d=>{counts={};for(const k in d)counts[k]=Object.keys(d[k]).length;drawList()});
   navigator.geolocation&&navigator.geolocation.getCurrentPosition(p=>{pos=[p.coords.latitude,p.coords.longitude];drawList()},()=>{});
@@ -204,7 +227,7 @@ function drawList(){
   e.querySelector("b").textContent=t.n;
   e.querySelector("small").textContent=(t.d!=null?t.d.toFixed(1)+" km · ":"")+t.h;
   e.querySelector("a").href=`https://www.google.com/maps/dir/?api=1&destination=${t.lat},${t.lng}`;
-  e.querySelector("button").onclick=()=>enterHall(t);
+  e.querySelector("button").onclick=()=>{startMusic();enterHall(t)};
   e.onmouseenter=()=>map.panTo([t.lat,t.lng]);
   L2.appendChild(e)});
 }
@@ -245,6 +268,31 @@ function procTemple(){
  for(const x of[-2.8,2.8]){g.add(ML(new THREE.SphereGeometry(.22,12,10),new THREE.MeshBasicMaterial({color:0xffb050}),x,1.4,1.9));const l=new THREE.PointLight(0xffb050,1.2,9);l.position.set(x,1.5,2);g.add(l)}
  return g}
 function buildScene(t){
+ const sc=new THREE.Scene();sc.background=new THREE.Color(0x0d1226);sc.fog=new THREE.Fog(0x0d1226,16,40);
+ sc.add(new THREE.HemisphereLight(0xffe2b0,0x1a2040,1));
+ const dl=new THREE.DirectionalLight(0xffd9a0,.7);dl.position.set(3,6,4);sc.add(dl);
+ let o=ML(new THREE.CircleGeometry(16,48),M(0x24301f),0,0,0);o.rotation.x=-Math.PI/2;sc.add(o);
+ o=ML(new THREE.CircleGeometry(8,48),M(0x6b5a48),0,.01,0);o.rotation.x=-Math.PI/2;sc.add(o);
+ const dec=new THREE.Group(),p=[];
+ for(let i=0;i<300;i++){const a=Math.random()*6.283;p.push(Math.cos(a)*30,5+Math.random()*16,Math.sin(a)*30)}
+ dec.add(new THREE.Points(new THREE.BufferGeometry().setAttribute("position",new THREE.Float32BufferAttribute(p,3)),new THREE.PointsMaterial({color:0xfff2cc,size:.15,fog:false})));
+ dec.add(ML(new THREE.SphereGeometry(1.6,24,16),new THREE.MeshBasicMaterial({color:0xfff1c9,fog:false}),-12,13,-26));
+ for(let i=0;i<9;i++){const a=i/9*6.283;dec.add(ML(new THREE.ConeGeometry(5+Math.random()*3,7+Math.random()*5,5),M(0x1b2340),Math.cos(a)*24,3,Math.sin(a)*24))}
+ sc.add(dec);
+ for(let i=0;i<14;i++){const a=(i+Math.random()*.6)/14*6.283,r=10+Math.random()*2.5,tr=new THREE.Group();
+  tr.add(ML(new THREE.CylinderGeometry(.12,.16,1,8),M(0x4a3426),0,.5,0),ML(new THREE.ConeGeometry(.9,1.8,8),M(0x1f4a33),0,1.7,0),ML(new THREE.ConeGeometry(.65,1.4,8),M(0x2a5d41),0,2.7,0));
+  tr.position.set(Math.cos(a)*r,0,Math.sin(a)*r);sc.add(tr)}
+ const tp=procTemple();tp.position.z=-4.8;sc.add(tp);
+ const T2=T[t.id]||t;
+ if(T2.bg)new THREE.TextureLoader().loadAsync(T2.bg).then(x=>{x.mapping=THREE.EquirectangularReflectionMapping;x.colorSpace=THREE.SRGBColorSpace;sc.background=x;sc.fog=null;sc.remove(dec)}).catch(()=>{});
+ if(T2.model)new GLTFLoader().loadAsync(T2.model).then(g=>{sc.remove(tp);const m=fitTo(g.scene,0,6.5);m.position.z=-4.8;sc.add(m)}).catch(()=>{});
+ return sc}
+async function enterHall(t){
+ const mine=await Store.visits(user.uid),today=new Date().setHours(0,0,0,0);
+ const earned=mine.filter(v=>v.start>=today).reduce((s,v)=>s+v.points,0);
+ const r=Store.enter(t.id,user.uid,prof.code);
+ $("hall").classList.remove("hidden");$("hn").textContent=t.n;
+ const cv=$("cv"),rd=new THREE.WebGLRenderer({canvas:cv,antialias:true});rd.setPixelRatio(Math.min(devicePixelRatio,2));
  const sc=buildScene(t);
  const cam=new THREE.PerspectiveCamera(55,1,.1,60);let az=0,el=.45,dist=10,drag=null;
  const place=()=>{cam.position.set(Math.sin(az)*dist*Math.cos(el),dist*Math.sin(el)+1,Math.cos(az)*dist*Math.cos(el)+1);cam.lookAt(0,1.8,-.5)};
@@ -266,7 +314,7 @@ function buildScene(t){
 $("leave").onclick=leaveHall;
 addEventListener("pagehide",()=>{if(hallState)Store.leave(hallState.r)});
 async function leaveHall(){
- const h=hallState;if(!h)return;hallState=null;h.stop();await Store.leave(h.r);
+ const h=hallState;if(!h)return;hallState=null;h.stop();au&&au.stop();await Store.leave(h.r);
  $("hall").classList.add("hidden");$("info").classList.add("hidden");
  const mins=Math.floor((Date.now()-h.t0)/60000);
  /* Quy tắc điểm: 10 điểm khi ở đủ 1 phút, +2 điểm mỗi phút (tối đa 20 phút), tối đa 100 điểm/ngày */
@@ -333,6 +381,7 @@ function drawInfo(){const t=hallState&&(T[hallState.t.id]||hallState.t);if(!t)re
  $("ib-h").classList.toggle("on",itab=="h");$("ib-p").classList.toggle("on",itab=="p");
  $("ipb").textContent=(t[itab]?"Đề xuất chỉnh sửa ":"Đề xuất ")+(itab=="h"?"lịch sử":"bài khấn")+" (+"+PTS[itab=="h"?"history":"prayer"]+" điểm khi được duyệt)";
  $("ibox").classList.add("hidden");$("ita").maxLength=itab=="h"?1500:3000}
+$("mus").onclick=()=>{muted=!muted;au&&au.mute(muted);$("mus").textContent=muted?"🔇":"🔊"};
 $("infob").onclick=()=>{$("info").classList.remove("hidden");drawInfo()};
 $("ix").onclick=()=>$("info").classList.add("hidden");
 $("ib-h").onclick=()=>{itab="h";drawInfo()};$("ib-p").onclick=()=>{itab="p";drawInfo()};
