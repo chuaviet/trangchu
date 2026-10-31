@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Chùa Việt – Hà Nội</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600&family=Noto+Serif:wght@600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#141a2e;--panel:#1d2540;--ink:#f3ecdc;--mute:#9aa3c0;--gold:#e8b23a;--line:#303a5e;--red:#c44a3a}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 "Be Vietnam Pro",system-ui,sans-serif;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+h1,h2{font-family:"Noto Serif",Georgia,serif;font-weight:600;margin:0}
+button,select,input{font:inherit}
+.btn{background:var(--gold);color:#1a1405;border:0;border-radius:10px;padding:10px 16px;font-weight:600;cursor:pointer;text-decoration:none;display:inline-block}
+.btn.o{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+header{display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+header h1{font-size:20px;flex:1}
+nav{display:flex;gap:6px}
+.me{font-size:13px;color:var(--mute)}
+.me b{color:var(--gold)}
+main{height:calc(100% - 58px);overflow:auto}
+.auth{max-width:380px;margin:6vh auto;padding:20px;background:var(--panel);border-radius:14px;display:grid;gap:10px}
+.auth input,.auth select{padding:11px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);width:100%}
+.err{color:#ff9c8f;font-size:13px;min-height:18px}
+.split{display:grid;grid-template-columns:1fr 340px;height:100%}
+#map{height:100%;min-height:300px}
+.list{overflow:auto;padding:12px;display:grid;gap:10px;align-content:start}
+.item{background:var(--panel);border-radius:12px;padding:12px;display:grid;gap:6px}
+.item b{font-family:"Noto Serif",serif}
+.item small{color:var(--mute)}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.live{color:var(--gold)}
+@media (max-width:760px){.split{grid-template-columns:1fr;grid-template-rows:42% 58%}}
+.hist{max-width:640px;margin:0 auto;padding:16px;display:grid;gap:10px}
+.total{font-size:30px;color:var(--gold);font-family:"Noto Serif",serif}
+#hall{position:fixed;inset:0;background:#0d1226;z-index:1000}
+#cv{width:100%;height:100%;display:block;touch-action:none}
+.hud{position:absolute;left:0;right:0;top:0;padding:calc(10px + env(safe-area-inset-top)) 14px 10px;display:flex;justify-content:space-between;align-items:center;gap:8px;background:linear-gradient(#0d1226,transparent)}
+.hud2{position:absolute;left:0;right:0;bottom:0;padding:12px 14px calc(12px + env(safe-area-inset-bottom));display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.hidden{display:none!important}
+.btn.on{border-color:var(--gold);color:var(--gold)}
+.sheet{position:absolute;left:0;right:0;bottom:0;max-height:75%;overflow:auto;background:var(--panel);border-radius:16px 16px 0 0;padding:14px 16px calc(16px + env(safe-area-inset-bottom));z-index:5;display:grid;gap:10px;max-width:640px;margin:0 auto}
+#itx{white-space:pre-line}
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--gold);color:#1a1405;padding:10px 18px;border-radius:20px;z-index:3000;font-weight:600}
+/* form */
+.form{max-width:520px;margin:0 auto;padding:16px;display:grid;gap:10px;align-content:start}
+.form input,.form textarea,.item input,.item textarea{padding:11px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);width:100%}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<header>
+<h1>🪷 Chùa Việt · Hà Nội</h1>
+<nav id="nav" class="hidden"><button class="btn o" data-v="map">Bản đồ</button><button class="btn o" data-v="hist">Lịch sử</button><button class="btn o" data-v="sug">Đề xuất chùa</button><button class="btn o hidden" data-v="adm" id="adm-b">Duyệt chùa</button></nav>
+<span class="me hidden" id="me"></span>
+<button class="btn o hidden" id="eid">Sửa ID</button>
+<button class="btn o hidden" id="out">Đăng xuất</button>
+</header>
+<main>
+<section id="auth" class="auth">
+<h2>Vào chùa cùng mọi người</h2>
+<input id="em" type="email" placeholder="Email" autocomplete="email">
+<input id="pw" type="password" placeholder="Mật khẩu (từ 6 ký tự)" autocomplete="current-password">
+<select id="pv"><option value="hanoi">Hà Nội</option><option disabled>Huế (sắp có)</option><option disabled>Đà Nẵng (sắp có)</option><option disabled>TP. Hồ Chí Minh (sắp có)</option></select>
+<div class="err" id="err"></div>
+<button class="btn" id="reg">Tạo tài khoản</button>
+<button class="btn o" id="login">Đăng nhập</button>
+<button class="btn o" id="goog">Tiếp tục với Google</button>
+</section>
+<section id="map-v" class="split hidden"><div id="map"></div><div class="list" id="list"></div></section>
+<section id="hist-v" class="hist hidden"></section>
+<section id="sug-v" class="form hidden">
+<h2>Đề xuất một ngôi chùa</h2>
+<input id="sn" placeholder="Tên chùa" maxlength="80">
+<input id="sa" placeholder="Địa chỉ" maxlength="160">
+<textarea id="sh" rows="4" placeholder="Lịch sử chùa (không bắt buộc)" maxlength="600"></textarea>
+<textarea id="sp" rows="4" placeholder="Bài khấn (không bắt buộc)" maxlength="3000"></textarea>
+<small class="me">Khi được duyệt: +50 điểm công đức, thêm +20 nếu có lịch sử, +20 nếu có bài khấn.</small>
+<button class="btn o" id="pickb">📍 Chọn vị trí trên bản đồ</button>
+<small id="llt" class="me">Chưa chọn vị trí</small>
+<button class="btn" id="sgo">Gửi đề xuất</button>
+<h2 style="margin-top:14px;font-size:17px">Đề xuất của bạn</h2><div id="mys" style="display:grid;gap:8px"></div>
+</section>
+<section id="adm-v" class="hist hidden"></section>
+</main>
+<div id="hall" class="hidden">
+<canvas id="cv"></canvas>
+<div class="hud"><div><h2 id="hn" style="font-size:18px"></h2><small id="hc" style="color:var(--mute)"></small></div><button class="btn" id="leave">Rời chùa</button></div>
+<div class="hud2"><span id="tm" class="me" style="align-self:center"></span><button class="btn o" id="infob">📜 Lịch sử và bài khấn</button></div>
+<div id="info" class="sheet hidden">
+<div class="row"><button class="btn o on" id="ib-h">Lịch sử</button><button class="btn o" id="ib-p">Bài khấn</button><button class="btn o" id="ix" style="margin-left:auto">Đóng</button></div>
+<div id="itx"></div>
+<button class="btn" id="ipb"></button>
+<div id="ibox" class="hidden" style="display:grid;gap:8px"><textarea id="ita" rows="6" placeholder="Nhập nội dung đề xuất (tối thiểu 20 ký tự)" style="padding:11px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);width:100%"></textarea><button class="btn" id="isend">Gửi đề xuất</button></div>
+</div>
+</div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script type="module">
+import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import {getAuth,onAuthStateChanged,createUserWithEmailAndPassword,signInWithEmailAndPassword,GoogleAuthProvider,signInWithPopup,signOut} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import {getFirestore,doc,getDoc,setDoc,addDoc,collection,query,where,getDocs,updateDoc,increment,runTransaction,deleteDoc,onSnapshot} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import {getDatabase,ref,set,remove,onValue,onDisconnect} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
+
+/* ===== 1. CẤU HÌNH: dán thông tin Firebase của bạn vào đây ===== */
+const CFG={apiKey:"AIzaSyDFMS650Ffj2_pwrqo_Vrj_T0j4kJXA6JI",authDomain:"chua-viet-2fc09.firebaseapp.com",databaseURL:"https://chua-viet-2fc09-default-rtdb.asia-southeast1.firebasedatabase.app",projectId:"chua-viet-2fc09",storageBucket:"chua-viet-2fc09.firebasestorage.app",messagingSenderId:"341352121438",appId:"1:341352121438:web:7a11aac3c0c4fbd7e920cf"};
+
+/* ===== 2. DỮ LIỆU CHÙA HÀ NỘI (toạ độ gần đúng, hãy kiểm tra lại) ===== */
+const TEMPLES=[
+{id:"hn-mot-cot",n:"Chùa Một Cột",lat:21.0359,lng:105.8334,h:"Xây năm 1049 thời vua Lý Thái Tông, kiến trúc như đóa sen nở trên mặt hồ."},
+{id:"hn-tran-quoc",n:"Chùa Trấn Quốc",lat:21.0482,lng:105.8369,h:"Nằm bên Hồ Tây, có nguồn gốc từ thế kỷ VI, một trong những chùa cổ nhất Thăng Long."},
+{id:"hn-quan-su",n:"Chùa Quán Sứ",lat:21.0227,lng:105.8450,h:"Chùa giữa phố cổ, là nơi đặt trụ sở Trung ương Giáo hội Phật giáo Việt Nam."},
+{id:"hn-lang",n:"Chùa Láng",lat:21.0230,lng:105.8010,h:"Ngôi chùa cổ ở quận Đống Đa, gắn với thiền sư Từ Đạo Hạnh."},
+{id:"hn-thay",n:"Chùa Thầy",lat:21.0124,lng:105.6307,h:"Chùa ở chân núi Sài Sơn (Quốc Oai), nổi tiếng với thủy đình bên hồ."},
+{id:"hn-tay-phuong",n:"Chùa Tây Phương",lat:21.0187,lng:105.5712,h:"Chùa cổ trên đồi Câu Lâu (Thạch Thất), có bộ tượng La Hán nổi tiếng."}
+];
+const PTS={temple:50,history:20,prayer:20};
+let T=Object.fromEntries(TEMPLES.map(t=>[t.id,t]));let temples=[...TEMPLES];const mk={};let unT=null,isAdm=false;
+
+/* ===== 3. LỚP DỮ LIỆU (Store): muốn chuyển sang hệ thống khác chỉ cần viết lại khối này ===== */
+const app=initializeApp(CFG),auth=getAuth(app),fs=getFirestore(app),rt=getDatabase(app);
+const Store={
+ async profile(u){const s=await getDoc(doc(fs,"users",u));return s.exists()?s.data():null},
+ async createProfile(u,p){await setDoc(doc(fs,"users",u),p)},
+ reserve(u,code){const r=doc(fs,"codes",code.toLowerCase());return runTransaction(fs,async tx=>{if((await tx.get(r)).exists())return false;tx.set(r,{uid:u});return true})},
+ async setCode(u,old,nw){const same=nw.toLowerCase()==old.toLowerCase();if(!same&&!(await this.reserve(u,nw)))return false;await updateDoc(doc(fs,"users",u),{code:nw,codeAt:Date.now()});if(!same)await deleteDoc(doc(fs,"codes",old.toLowerCase()));return true},
+ suggest(s){return addDoc(collection(fs,"suggestions"),s)},
+ async sugs(q){const s=await getDocs(q);return s.docs.map(d=>({id:d.id,...d.data()}))},
+ mySugs(u){return this.sugs(query(collection(fs,"suggestions"),where("uid","==",u)))},
+ pendingSugs(){return this.sugs(query(collection(fs,"suggestions"),where("status","==","pending")))},
+ async decide(sg,ok,d){if(ok){await setDoc(doc(fs,"temples",d.id),{n:d.n,addr:d.addr,h:d.h,p:d.p,lat:sg.lat,lng:sg.lng,province:sg.province,from:sg.uid,at:Date.now()});await this.award(sg.uid,PTS.temple+(d.h?PTS.history:0)+(d.p?PTS.prayer:0),"temple",d.n)}await updateDoc(doc(fs,"suggestions",sg.id),{status:ok?"approved":"rejected"})},
+ contrib(c){return addDoc(collection(fs,"contribs"),c)},
+ myContribs(u){return this.sugs(query(collection(fs,"contribs"),where("uid","==",u)))},
+ pendingContribs(){return this.sugs(query(collection(fs,"contribs"),where("status","==","pending")))},
+ myMerits(u){return this.sugs(query(collection(fs,"merits"),where("uid","==",u)))},
+ async award(uid,pts,kind,name){await addDoc(collection(fs,"merits"),{uid,kind,t:name,points:pts,at:Date.now()});await updateDoc(doc(fs,"users",uid),{points:increment(pts)})},
+ async decideC(c,ok,text){if(ok){await setDoc(doc(fs,"temples",c.templeId),{[c.kind=="history"?"h":"p"]:text},{merge:true});await this.award(c.uid,PTS[c.kind],c.kind,c.t)}await updateDoc(doc(fs,"contribs",c.id),{status:ok?"approved":"rejected"})},
+ watchTemples(cb){return onSnapshot(collection(fs,"temples"),s=>cb(s.docs.map(d=>({id:d.id,...d.data()}))))},
+ async isAdmin(u){return (await getDoc(doc(fs,"admins",u))).exists()},
+ async addVisit(v){await addDoc(collection(fs,"visits"),v);await updateDoc(doc(fs,"users",v.uid),{points:increment(v.points)})},
+ async visits(u){const s=await getDocs(query(collection(fs,"visits"),where("uid","==",u)));return s.docs.map(d=>d.data()).sort((a,b)=>b.start-a.start)},
+ enter(tid,u,code){const r=ref(rt,`presence/${tid}/${u}`);set(r,{code,ts:Date.now()});onDisconnect(r).remove();return r},
+ leave(r){return remove(r)},
+ watch(path,cb){return onValue(ref(rt,path),s=>cb(s.val()||{}))}
+};
+
+/* ===== 4. TIỆN ÍCH ===== */
+const $=id=>document.getElementById(id);
+const toast=m=>{const d=document.createElement("div");d.className="toast";d.textContent=m;document.body.appendChild(d);setTimeout(()=>d.remove(),3000)};
+const km=(a,b,c,d)=>{const r=x=>x*Math.PI/180,h=Math.sin(r(c-a)/2)**2+Math.cos(r(a))*Math.cos(r(c))*Math.sin(r(d-b)/2)**2;return 12742*Math.asin(Math.sqrt(h))};
+const hash=s=>{let h=0;for(const c of s)h=(h*31+c.charCodeAt(0))>>>0;return h};
+let user=null,prof=null,counts={},pos=null,hallState=null,map=null;
+
+/* ===== 5. ĐĂNG NHẬP ===== */
+const errMsg=e=>({"auth/invalid-credential":"Sai email hoặc mật khẩu.","auth/email-already-in-use":"Email này đã có tài khoản.","auth/weak-password":"Mật khẩu cần ít nhất 6 ký tự.","auth/invalid-email":"Email không hợp lệ."}[e.code]||"Không đăng nhập được. Kiểm tra lại cấu hình Firebase.");
+const run=f=>async()=>{$("err").textContent="";try{await f()}catch(e){$("err").textContent=errMsg(e)}};
+$("reg").onclick=run(()=>createUserWithEmailAndPassword(auth,$("em").value,$("pw").value));
+$("login").onclick=run(()=>signInWithEmailAndPassword(auth,$("em").value,$("pw").value));
+$("goog").onclick=run(()=>signInWithPopup(auth,new GoogleAuthProvider()));
+$("out").onclick=()=>signOut(auth);
+onAuthStateChanged(auth,async u=>{
+ user=u;
+ if(!u){unT&&unT();unT=null;["nav","me","out","eid","map-v","hist-v","sug-v","adm-v"].forEach(i=>$(i).classList.add("hidden"));$("auth").classList.remove("hidden");return}
+ prof=await Store.profile(u.uid);
+ if(!prof){let c;for(let i=0;i<8;i++){c="PT-"+(10000+Math.floor(Math.random()*89999));if(await Store.reserve(u.uid,c))break}
+  prof={code:c,province:$("pv").value,points:0,createdAt:Date.now()};await Store.createProfile(u.uid,prof)}
+ isAdm=await Store.isAdmin(u.uid).catch(()=>false);$("adm-b").classList.toggle("hidden",!isAdm);
+ unT=Store.watchTemples(setTemples,()=>{});
+ $("auth").classList.add("hidden");["nav","me","out","eid"].forEach(i=>$(i).classList.remove("hidden"));
+ showMe();show("map");
+});
+const showMe=()=>{$("me").innerHTML=`ID <b>${prof.code}</b> · <b>${prof.points}</b> điểm công đức`};
+
+/* ===== 6. BẢN ĐỒ HÀ NỘI ===== */
+document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>show(b.dataset.v));
+function show(v){for(const k of ["map","hist","sug","adm"])$(k+"-v").classList.toggle("hidden",k!=v);if(v=="map")initMap();if(v=="hist")loadHist();if(v=="sug")sugView();if(v=="adm")loadAdm()}
+function setTemples(list){const by=Object.fromEntries(list.map(x=>[x.id,x]));temples=[...TEMPLES.map(b=>({...b,...(by[b.id]||{})})),...list.filter(x=>!TEMPLES.some(b=>b.id==x.id)&&x.lat!=null)];T=Object.fromEntries(temples.map(t=>[t.id,t]));syncMarkers();if(map)drawList();if(hallState&&!$("info").classList.contains("hidden"))drawInfo()}
+function syncMarkers(){if(!map)return;temples.forEach(t=>{if(!mk[t.id])mk[t.id]=L.marker([t.lat,t.lng]).addTo(map).bindTooltip(t.n)})}
+function initMap(){
+ if(!map){
+  map=L.map("map").setView([21.03,105.84],11);
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:18,attribution:"© OpenStreetMap"}).addTo(map);
+  syncMarkers();map.on("click",onMapClick);
+  Store.watch("presence",d=>{counts={};for(const k in d)counts[k]=Object.keys(d[k]).length;drawList()});
+  navigator.geolocation&&navigator.geolocation.getCurrentPosition(p=>{pos=[p.coords.latitude,p.coords.longitude];drawList()},()=>{});
+ }
+ setTimeout(()=>map.invalidateSize(),50);drawList();
+}
+function drawList(){
+ const L2=$("list");L2.textContent="";
+ const arr=temples.map(t=>({...t,d:pos?km(pos[0],pos[1],t.lat,t.lng):null})).sort((a,b)=>pos?a.d-b.d:0);
+ arr.forEach(t=>{
+  const e=document.createElement("div");e.className="item";
+  const n=counts[t.id]||0;
+  e.innerHTML=`<b></b><small></small><div class="live">● ${n} người đang ở chùa</div><div class="row"><button class="btn">Vào chùa</button><a class="btn o" target="_blank" rel="noopener">Chỉ đường</a></div>`;
+  e.querySelector("b").textContent=t.n;
+  e.querySelector("small").textContent=(t.d!=null?t.d.toFixed(1)+" km · ":"")+t.h;
+  e.querySelector("a").href=`https://www.google.com/maps/dir/?api=1&destination=${t.lat},${t.lng}`;
+  e.querySelector("button").onclick=()=>enterHall(t);
+  e.onmouseenter=()=>map.panTo([t.lat,t.lng]);
+  L2.appendChild(e)});
+}
+
+/* ===== 7. SẢNH CHÙA 3D + NGƯỜI THẬT ===== */
+function label(txt,gold){
+ const c=document.createElement("canvas");c.width=256;c.height=64;const x=c.getContext("2d");
+ x.fillStyle=gold?"#e8b23a":"rgba(20,26,46,.85)";x.beginPath();x.roundRect(8,8,240,48,24);x.fill();
+ x.fillStyle=gold?"#1a1405":"#f3ecdc";x.font="600 28px sans-serif";x.textAlign="center";x.textBaseline="middle";x.fillText(txt,128,33);
+ const s=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),depthTest:false}));s.scale.set(1.6,.4,1);s.position.y=1.9;return s}
+function avatar(uid,code,mine){
+ const g=new THREE.Group(),col=mine?0xe8b23a:0xd9822b;
+ const body=new THREE.Mesh(new THREE.ConeGeometry(.55,1,20),new THREE.MeshLambertMaterial({color:col}));body.position.y=.5;
+ const head=new THREE.Mesh(new THREE.SphereGeometry(.28,20,16),new THREE.MeshLambertMaterial({color:0xf1cfa5}));head.position.y=1.2;
+ const base=new THREE.Mesh(new THREE.CylinderGeometry(.7,.7,.08,24),new THREE.MeshLambertMaterial({color:0x7a2f24}));base.position.y=.04;
+ g.add(body,head,base,label(code,mine));
+ const h=hash(uid),a=(h%360)*Math.PI/180,r=2.4+((h>>9)%4)*1.1;
+ g.position.set(Math.cos(a)*r,0,Math.sin(a)*r+1.5);return g}
+async function enterHall(t){
+ const mine=await Store.visits(user.uid),today=new Date().setHours(0,0,0,0);
+ const earned=mine.filter(v=>v.start>=today).reduce((s,v)=>s+v.points,0);
+ const r=Store.enter(t.id,user.uid,prof.code);
+ $("hall").classList.remove("hidden");$("hn").textContent=t.n;
+ const cv=$("cv"),rd=new THREE.WebGLRenderer({canvas:cv,antialias:true});rd.setPixelRatio(Math.min(devicePixelRatio,2));
+ const sc=new THREE.Scene();sc.background=new THREE.Color(0x0d1226);sc.fog=new THREE.Fog(0x0d1226,12,26);
+ sc.add(new THREE.HemisphereLight(0xffe2b0,0x1a2040,1.1));
+ const dl=new THREE.DirectionalLight(0xffd9a0,.8);dl.position.set(3,6,4);sc.add(dl);
+ const fl=new THREE.Mesh(new THREE.CircleGeometry(9,48),new THREE.MeshLambertMaterial({color:0x3a2a26}));fl.rotation.x=-Math.PI/2;sc.add(fl);
+ const tp=new THREE.Group(),wall=new THREE.Mesh(new THREE.BoxGeometry(5,2.2,2.6),new THREE.MeshLambertMaterial({color:0x8a2f25}));wall.position.y=1.1;
+ const roof=new THREE.Mesh(new THREE.ConeGeometry(3.9,1.6,4),new THREE.MeshLambertMaterial({color:0x4a1f1a}));roof.position.y=3;roof.rotation.y=Math.PI/4;
+ const door=new THREE.Mesh(new THREE.BoxGeometry(1,1.5,.1),new THREE.MeshBasicMaterial({color:0xe8b23a}));door.position.set(0,.75,1.32);
+ tp.add(wall,roof,door);tp.position.z=-4.5;sc.add(tp);
+ const cam=new THREE.PerspectiveCamera(55,1,.1,60);let az=0,el=.45,dist=10,drag=null;
+ const place=()=>{cam.position.set(Math.sin(az)*dist*Math.cos(el),dist*Math.sin(el)+1,Math.cos(az)*dist*Math.cos(el)+1);cam.lookAt(0,1,0)};
+ cv.onpointerdown=e=>drag=[e.clientX,e.clientY];cv.onpointerup=()=>drag=null;
+ cv.onpointermove=e=>{if(!drag)return;az-=(e.clientX-drag[0])*.006;el=Math.max(.15,Math.min(1.2,el+(e.clientY-drag[1])*.004));drag=[e.clientX,e.clientY]};
+ const fit=()=>{rd.setSize(innerWidth,innerHeight,false);cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();dist=cam.aspect<1?14:10};
+ addEventListener("resize",fit);fit();
+ const av={};
+ const un=Store.watch(`presence/${t.id}`,d=>{
+  for(const u in av)if(!d[u]){sc.remove(av[u]);delete av[u]}
+  for(const u in d)if(!av[u]){av[u]=avatar(u,d[u].code,u==user.uid);sc.add(av[u])}
+  $("hc").textContent=Object.keys(d).length+" người đang có mặt"});
+ const t0=Date.now();let raf;
+ const loop=()=>{raf=requestAnimationFrame(loop);if(!drag)az+=.0008;place();rd.render(sc,cam);
+  const s=Math.floor((Date.now()-t0)/1000);$("tm").textContent=`Đã ở chùa ${Math.floor(s/60)}:${String(s%60).padStart(2,"0")}`};
+ loop();
+ hallState={r,t,t0,earned,stop(){cancelAnimationFrame(raf);un();removeEventListener("resize",fit);rd.dispose()}};
+}
+$("leave").onclick=leaveHall;
+addEventListener("pagehide",()=>{if(hallState)Store.leave(hallState.r)});
+async function leaveHall(){
+ const h=hallState;if(!h)return;hallState=null;h.stop();await Store.leave(h.r);
+ $("hall").classList.add("hidden");$("info").classList.add("hidden");
+ const mins=Math.floor((Date.now()-h.t0)/60000);
+ /* Quy tắc điểm: 10 điểm khi ở đủ 1 phút, +2 điểm mỗi phút (tối đa 20 phút), tối đa 100 điểm/ngày */
+ let pts=mins<1?0:10+Math.min(mins,20)*2;pts=Math.max(0,Math.min(pts,100-h.earned));
+ if(mins>=1){await Store.addVisit({uid:user.uid,templeId:h.t.id,start:h.t0,end:Date.now(),mins,points:pts});prof.points+=pts;showMe();
+  toast(pts?`+${pts} điểm công đức. A Di Đà Phật!`:"Hôm nay bạn đã đạt tối đa điểm công đức.")}
+}
+
+/* ===== 9. SỬA ID ===== */
+const OK=/^[A-Za-z0-9_.-]{3,16}$/;
+$("eid").onclick=async()=>{
+ if(hallState)return toast("Hãy rời chùa trước khi đổi ID");
+ if(Date.now()-(prof.codeAt||0)<6048e5)return toast("Mỗi 7 ngày chỉ đổi ID được 1 lần");
+ const v=(prompt("ID mới (3–16 ký tự: chữ, số, _ . -)",prof.code)||"").trim();
+ if(!v||v==prof.code)return;
+ if(!OK.test(v)||/admin|quantri/i.test(v))return toast("ID không hợp lệ");
+ try{if(await Store.setCode(user.uid,prof.code,v)){prof.code=v;prof.codeAt=Date.now();showMe();toast("Đã đổi ID")}else toast("ID này đã có người dùng")}catch(e){toast("Không đổi được ID")}};
+
+/* ===== 10. ĐỀ XUẤT CHÙA ===== */
+let pick=false,pickLL=null,pickMk=null;
+$("pickb").onclick=()=>{pick=true;show("map");toast("Bấm vào bản đồ để chọn vị trí chùa")};
+function onMapClick(e){if(!pick)return;pick=false;pickLL=e.latlng;if(pickMk)pickMk.remove();pickMk=L.marker(e.latlng,{opacity:.6}).addTo(map);
+ $("llt").textContent=`Đã chọn vị trí: ${e.latlng.lat.toFixed(5)}, ${e.latlng.lng.toFixed(5)}`;show("sug")}
+$("sgo").onclick=async()=>{
+ const n=$("sn").value.trim(),h=$("sh").value.trim();
+ if(n.length<3)return toast("Hãy nhập tên chùa");
+ if(!pickLL)return toast("Hãy chọn vị trí trên bản đồ");
+ try{await Store.suggest({uid:user.uid,n,addr:$("sa").value.trim(),h,p:$("sp").value.trim(),lat:pickLL.lat,lng:pickLL.lng,province:"hanoi",status:"pending",createdAt:Date.now()});
+  ["sn","sa","sh","sp"].forEach(i=>$(i).value="");pickLL=null;if(pickMk)pickMk.remove();$("llt").textContent="Chưa chọn vị trí";toast("Đã gửi, chờ duyệt");sugView()}
+ catch(e){toast("Không gửi được, thử lại sau")}};
+const ST={pending:"Chờ duyệt",approved:"Đã duyệt",rejected:"Không được duyệt"};
+async function sugView(){
+ const box=$("mys");box.textContent="Đang tải…";
+ const [a,b]=await Promise.all([Store.mySugs(user.uid),Store.myContribs(user.uid)]);
+ const l=[...a.map(s=>({t:"Chùa mới: "+s.n,st:s.status,at:s.createdAt})),...b.map(c=>({t:(c.kind=="history"?"Lịch sử":"Bài khấn")+" · "+c.t,st:c.status,at:c.createdAt}))].sort((x,y)=>y.at-x.at);box.textContent="";
+ if(!l.length)box.textContent="Bạn chưa có đề xuất nào.";
+ l.forEach(s=>{const e=document.createElement("div");e.className="item";e.innerHTML="<b></b><small></small>";e.querySelector("b").textContent=s.t;e.querySelector("small").textContent=ST[s.st]||s.st;box.appendChild(e)})}
+
+/* ===== 11. QUẢN TRỊ: DUYỆT CHÙA ===== */
+const slug=s=>s.normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/đ/gi,"d").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
+async function loadAdm(){
+ const box=$("adm-v");box.textContent="Đang tải…";
+ let a,c;try{[a,c]=await Promise.all([Store.pendingSugs(),Store.pendingContribs()])}catch(e){box.textContent="Bạn không có quyền duyệt.";return}
+ box.textContent="";const h=document.createElement("h2");h.textContent=`Chờ duyệt (${a.length+c.length})`;box.appendChild(h);
+ const card=html=>{const e=document.createElement("div");e.className="item";e.innerHTML=html;box.appendChild(e);return e};
+ const btns='<div class="row"><button class="btn ok">Duyệt và đăng</button><button class="btn o no">Từ chối</button></div>';
+ const wire=(e,fn)=>{[true,false].forEach(ok=>e.querySelector(ok?".ok":".no").onclick=async()=>{try{await fn(ok);e.remove();toast(ok?"Đã duyệt":"Đã từ chối")}catch(x){toast("Thao tác thất bại")}})};
+ a.forEach(s=>{const e=card('<b>Chùa mới</b><input class="n"><input class="a"><textarea class="d" rows="3" placeholder="Lịch sử"></textarea><textarea class="p" rows="3" placeholder="Bài khấn"></textarea><small></small>'+btns);
+  e.querySelector(".n").value=s.n;e.querySelector(".a").value=s.addr||"";e.querySelector(".d").value=s.h||"";e.querySelector(".p").value=s.p||"";
+  e.querySelector("small").textContent=`Vị trí: ${s.lat.toFixed(5)}, ${s.lng.toFixed(5)} · người gửi ${s.uid.slice(0,6)}`;
+  wire(e,ok=>{const n=e.querySelector(".n").value.trim();if(!n){toast("Thiếu tên chùa");throw 0}
+   return Store.decide(s,ok,{id:"hn-"+slug(n)+"-"+Math.random().toString(36).slice(2,5),n,addr:e.querySelector(".a").value.trim(),h:e.querySelector(".d").value.trim(),p:e.querySelector(".p").value.trim()})})});
+ c.forEach(x=>{const e=card('<b></b><small></small><textarea class="d" rows="6"></textarea>'+btns);
+  const f=x.kind=="history"?"h":"p",cur=(T[x.templeId]||{})[f];
+  e.querySelector("b").textContent=(x.kind=="history"?"Lịch sử":"Bài khấn")+" · "+x.t;
+  e.querySelector("small").textContent=cur?"Hiện có: "+cur.slice(0,160)+(cur.length>160?"…":""):"Chưa có nội dung.";
+  e.querySelector(".d").value=x.text;
+  wire(e,ok=>Store.decideC(x,ok,e.querySelector(".d").value.trim()))})}
+
+/* ===== 12. LỊCH SỬ VÀ BÀI KHẤN CỦA CHÙA ===== */
+let itab="h";
+function drawInfo(){const t=hallState&&(T[hallState.t.id]||hallState.t);if(!t)return;
+ $("itx").textContent=t[itab]||(itab=="h"?"Chưa có lịch sử cho chùa này.":"Chưa có bài khấn cho chùa này.");
+ $("ib-h").classList.toggle("on",itab=="h");$("ib-p").classList.toggle("on",itab=="p");
+ $("ipb").textContent=(t[itab]?"Đề xuất chỉnh sửa ":"Đề xuất ")+(itab=="h"?"lịch sử":"bài khấn")+" (+"+PTS[itab=="h"?"history":"prayer"]+" điểm khi được duyệt)";
+ $("ibox").classList.add("hidden");$("ita").maxLength=itab=="h"?1500:3000}
+$("infob").onclick=()=>{$("info").classList.remove("hidden");drawInfo()};
+$("ix").onclick=()=>$("info").classList.add("hidden");
+$("ib-h").onclick=()=>{itab="h";drawInfo()};$("ib-p").onclick=()=>{itab="p";drawInfo()};
+$("ipb").onclick=()=>{$("ibox").classList.remove("hidden");$("ita").value=""};
+$("isend").onclick=async()=>{const x=$("ita").value.trim();if(x.length<20)return toast("Nội dung quá ngắn");
+ const t=hallState.t;
+ try{await Store.contrib({uid:user.uid,templeId:t.id,t:t.n,kind:itab=="h"?"history":"prayer",text:x,status:"pending",createdAt:Date.now()});toast("Đã gửi, chờ duyệt");$("ibox").classList.add("hidden")}catch(e){toast("Không gửi được, thử lại sau")}};
+
+/* ===== 8. LỊCH SỬ ĐI CHÙA ===== */
+async function loadHist(){
+ const box=$("hist-v");box.textContent="Đang tải…";
+ const [vs,ms,p]=await Promise.all([Store.visits(user.uid),Store.myMerits(user.uid),Store.profile(user.uid)]);
+ if(p){prof=p;showMe()}box.textContent="";
+ const tt=document.createElement("div");tt.innerHTML=`<small class="me">Tổng điểm công đức</small><div class="total"></div>`;tt.querySelector(".total").textContent=prof.points;box.appendChild(tt);
+ const K={temple:"Đề xuất chùa",history:"Đề xuất lịch sử",prayer:"Đề xuất bài khấn"},f=x=>new Date(x).toLocaleString("vi-VN");
+ const all=[...vs.map(v=>({at:v.start,a:(T[v.templeId]||{n:v.templeId}).n,b:`${f(v.start)} · ${v.mins} phút · +${v.points} điểm`})),...ms.map(m=>({at:m.at,a:K[m.kind]+": "+m.t,b:`${f(m.at)} · +${m.points} điểm`}))].sort((x,y)=>y.at-x.at);
+ if(!all.length){const q=document.createElement("p");q.textContent="Bạn chưa có hoạt động nào. Mở Bản đồ và chọn một ngôi chùa để bắt đầu.";box.appendChild(q);return}
+ all.forEach(v=>{const e=document.createElement("div");e.className="item";e.innerHTML="<b></b><small></small>";e.querySelector("b").textContent=v.a;e.querySelector("small").textContent=v.b;box.appendChild(e)})
+}
+</script>
+</body>
+</html>
