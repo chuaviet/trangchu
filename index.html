@@ -45,6 +45,41 @@ main{height:calc(100% - 58px);overflow:auto}
 .sheet{position:absolute;left:0;right:0;bottom:0;max-height:75%;overflow:auto;background:var(--panel);border-radius:16px 16px 0 0;padding:14px 16px calc(16px + env(safe-area-inset-bottom));z-index:5;display:grid;gap:10px;max-width:640px;margin:0 auto}
 #itx{white-space:pre-line}
 .toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--gold);color:#1a1405;padding:10px 18px;border-radius:20px;z-index:3000;font-weight:600}
+/* sảnh 2D */
+#hall{display:flex;align-items:center;justify-content:center;background:#000}
+#stage{--u:4px;position:relative;width:min(100vw,calc(100vh*9/16));height:min(100vh,calc(100vw*16/9));overflow:hidden;background:#2a0f08;color:#fff0d0;font-size:calc(var(--u)*3.4);user-select:none;-webkit-user-select:none}
+#bg{position:absolute;inset:0;background:center/cover no-repeat}
+#bg svg{width:100%;height:100%;display:block}
+#seats,#fx{position:absolute;inset:0;pointer-events:none}
+#seats{z-index:1}#fx{z-index:2}
+.p{position:absolute;width:calc(var(--u)*17);transform:translate(-50%,-100%);text-align:center;animation:bob 4s ease-in-out infinite}
+@keyframes bob{50%{transform:translate(-50%,-100%) translateY(calc(var(--u)*-.6))}}
+.p .b{width:calc(var(--u)*17*var(--s));margin:0 auto;position:relative}
+.p img,.p svg{width:100%;display:block}
+.p .nm{display:block;font-size:calc(var(--u)*2.5);white-space:nowrap;text-shadow:0 1px 3px #000;margin-bottom:calc(var(--u)*-.4)}
+.p.me .nm{color:#ffd45a;font-weight:600}
+.p.me .b::after{content:"";position:absolute;left:-6%;right:-6%;bottom:2%;height:calc(var(--u)*3);border:2px solid #ffd45a;border-radius:50%}
+.top{position:absolute;z-index:3;left:3%;right:3%;top:calc(2% + env(safe-area-inset-top));display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:14px;background:rgba(30,10,5,.72);border:1px solid #b8862b}
+.top .btn{padding:6px 10px;font-size:calc(var(--u)*3.2)}
+.ttl{flex:1;text-align:center;min-width:0}
+.ttl h2{font-size:calc(var(--u)*5);color:#ffd45a;margin:0}
+.ttl small{font-size:calc(var(--u)*3);color:#ffe9b8}
+.rank{position:absolute;z-index:3;right:3%;top:calc(var(--u)*30);width:calc(var(--u)*36);background:rgba(30,10,5,.72);border:1px solid #b8862b;border-radius:12px;padding:8px 10px;font-size:calc(var(--u)*3)}
+.rank b{display:block;color:#ffd45a;text-align:center;margin-bottom:4px;font-family:"Noto Serif",serif}
+.rank div{display:flex;justify-content:space-between;gap:6px}
+#feed{position:absolute;z-index:3;left:4%;right:4%;bottom:calc(var(--u)*22);display:grid;gap:4px;justify-items:center;pointer-events:none}
+#feed span{background:rgba(30,10,5,.72);padding:3px 12px;border-radius:12px;font-size:calc(var(--u)*3.2);animation:fd 6s forwards}
+@keyframes fd{0%{opacity:0}8%,80%{opacity:1}100%{opacity:0}}
+.acts{position:absolute;z-index:3;left:3%;right:3%;bottom:calc(1.5% + env(safe-area-inset-bottom));display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
+.acts .btn{background:rgba(30,10,5,.82);color:#ffe9b8;border:1px solid #b8862b;padding:8px 10px;font-size:calc(var(--u)*3.2)}
+.smoke{position:absolute;width:calc(var(--u)*9);height:calc(var(--u)*9);border-radius:50%;background:radial-gradient(#fffc,#fff0);animation:sm 4s ease-out forwards}
+@keyframes sm{from{transform:translateY(0) scale(.5);opacity:.9}to{transform:translateY(calc(var(--u)*-40)) scale(2.2);opacity:0}}
+.petal{position:absolute;top:-5%;font-size:calc(var(--u)*5);animation:pt 4s linear forwards}
+@keyframes pt{to{transform:translateY(calc(var(--u)*120)) rotate(300deg);opacity:.2}}
+.ring{position:absolute;left:78%;top:52%;width:calc(var(--u)*10);height:calc(var(--u)*10);margin:calc(var(--u)*-5) 0 0 calc(var(--u)*-5);border:3px solid #ffd45a;border-radius:50%;animation:rg 1.6s ease-out forwards}
+@keyframes rg{to{transform:scale(5);opacity:0}}
+.sheet{font-size:max(15px,calc(var(--u)*3.8))}
+@media (prefers-reduced-motion:reduce){.p,.smoke,.petal{animation:none}}
 /* form */
 .form{max-width:520px;margin:0 auto;padding:16px;display:grid;gap:10px;align-content:start}
 .form input,.form textarea,.item input,.item textarea{padding:11px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);width:100%}
@@ -86,32 +121,29 @@ main{height:calc(100% - 58px);overflow:auto}
 </section>
 <section id="adm-v" class="hist hidden"></section>
 </main>
-<div id="hall" class="hidden">
-<canvas id="cv"></canvas>
-<div class="hud"><div><h2 id="hn" style="font-size:18px"></h2><small id="hc" style="color:var(--mute)"></small></div><button class="btn" id="leave">Rời chùa</button></div>
-<div class="hud2"><span id="tm" class="me" style="align-self:center"></span><button class="btn o" id="infob">📜 Lịch sử và bài khấn</button><button class="btn o" id="mus" aria-label="Bật hoặc tắt nhạc">🔊</button></div>
+<div id="hall" class="hidden"><div id="stage">
+<div id="bg"></div><div id="seats"></div><div id="fx"></div>
+<div class="top"><button class="btn" id="leave">Rời chùa</button><div class="ttl"><h2 id="hn"></h2><small id="hc"></small><br><small id="pt"></small> <small id="tm"></small></div><button class="btn o" id="mus" aria-label="Bật hoặc tắt nhạc">🔊</button></div>
+<div class="rank" id="rank"></div><div id="feed"></div>
+<div class="acts"><button class="btn o" data-a="incense">🪔 Thắp hương</button><button class="btn o" data-a="bell">🔔 Gõ chuông</button><button class="btn o" data-a="flower">🌸 Dâng hoa</button><button class="btn o" id="infob">📜 Lịch sử, bài khấn</button></div>
 <div id="info" class="sheet hidden">
 <div class="row"><button class="btn o on" id="ib-h">Lịch sử</button><button class="btn o" id="ib-p">Bài khấn</button><button class="btn o" id="ix" style="margin-left:auto">Đóng</button></div>
 <div id="itx"></div>
 <button class="btn" id="ipb"></button>
 <div id="ibox" class="hidden" style="display:grid;gap:8px"><textarea id="ita" rows="6" placeholder="Nhập nội dung đề xuất (tối thiểu 20 ký tự)" style="padding:11px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);width:100%"></textarea><button class="btn" id="isend">Gửi đề xuất</button></div>
 </div>
-</div>
+</div></div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}</script>
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import {getAuth,onAuthStateChanged,createUserWithEmailAndPassword,signInWithEmailAndPassword,GoogleAuthProvider,signInWithPopup,signOut} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {getFirestore,doc,getDoc,setDoc,addDoc,collection,query,where,getDocs,updateDoc,increment,runTransaction,deleteDoc,onSnapshot} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-import {getDatabase,ref,set,remove,onValue,onDisconnect} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
-import * as THREE from "three";
-import {GLTFLoader} from "three/addons/loaders/GLTFLoader.js";
+import {getDatabase,ref,set,remove,onValue,onDisconnect,update} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
 /* ===== 1. CẤU HÌNH: dán thông tin Firebase của bạn vào đây ===== */
 const CFG={apiKey:"AIzaSyDFMS650Ffj2_pwrqo_Vrj_T0j4kJXA6JI",authDomain:"chua-viet-2fc09.firebaseapp.com",databaseURL:"https://chua-viet-2fc09-default-rtdb.asia-southeast1.firebasedatabase.app",projectId:"chua-viet-2fc09",storageBucket:"chua-viet-2fc09.firebasestorage.app",messagingSenderId:"341352121438",appId:"1:341352121438:web:7a11aac3c0c4fbd7e920cf"};
 
-/* Tùy chọn: file mô hình nhân vật 3D (.glb) đặt trong repo, ví dụ "assets/avatar.glb". Để trống = dùng nhân vật có sẵn. */
-const AVATAR_GLB="";
+/* Hình sảnh chùa: đặt ảnh vào thư mục assets/hall/ (bg.webp, monk.webp). Không có ảnh thì trang dùng hình vẽ tạm. */
 /* Tùy chọn: file nhạc nền (.mp3) của bạn, ví dụ "assets/nhac.mp3". Để trống = nhạc chuông bát và âm nền êm do trình duyệt tự tạo. */
 const MUSIC_URL="";
 
@@ -149,7 +181,8 @@ const Store={
  async isAdmin(u){return (await getDoc(doc(fs,"admins",u))).exists()},
  async addVisit(v){await addDoc(collection(fs,"visits"),v);await updateDoc(doc(fs,"users",v.uid),{points:increment(v.points)})},
  async visits(u){const s=await getDocs(query(collection(fs,"visits"),where("uid","==",u)));return s.docs.map(d=>d.data()).sort((a,b)=>b.start-a.start)},
- enter(tid,u,code){const r=ref(rt,`presence/${tid}/${u}`);set(r,{code,ts:Date.now()});onDisconnect(r).remove();return r},
+ act(r,a){return update(r,{act:a})},
+ enter(tid,u,code,pts){const r=ref(rt,`presence/${tid}/${u}`);set(r,{code,ts:Date.now(),pts:pts||0});onDisconnect(r).remove();return r},
  leave(r){return remove(r)},
  watch(path,cb){return onValue(ref(rt,path),s=>cb(s.val()||{}))}
 };
@@ -232,84 +265,48 @@ function drawList(){
   L2.appendChild(e)});
 }
 
-/* ===== 7. SẢNH CHÙA 3D + NGƯỜI THẬT ===== */
-function label(txt,gold){
- const c=document.createElement("canvas");c.width=256;c.height=64;const x=c.getContext("2d");
- x.fillStyle=gold?"#e8b23a":"rgba(20,26,46,.85)";x.beginPath();x.roundRect(8,8,240,48,24);x.fill();
- x.fillStyle=gold?"#1a1405":"#f3ecdc";x.font="600 28px sans-serif";x.textAlign="center";x.textBaseline="middle";x.fillText(txt,128,33);
- const s=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),depthTest:false}));s.scale.set(1.6,.4,1);s.position.y=1.9;return s}
-const M=(c,o)=>new THREE.MeshLambertMaterial({color:c,...o});
-const ML=(g,m,x,y,z)=>{const o=new THREE.Mesh(g,m);o.position.set(x,y,z);return o};
-function fitTo(o,h,w){const g=new THREE.Group();g.add(o);let b=new THREE.Box3().setFromObject(o);const s=b.getSize(new THREE.Vector3());o.scale.multiplyScalar(w?w/Math.max(s.x,s.z):h/s.y);b.setFromObject(o);o.position.set(-(b.min.x+b.max.x)/2,-b.min.y,-(b.min.z+b.max.z)/2);return g}
-let AVM=null;if(AVATAR_GLB)new GLTFLoader().loadAsync(AVATAR_GLB).then(g=>AVM=g.scene).catch(()=>{});
-function monk(){
- const g=new THREE.Group(),robe=M(0xe2862a),skin=M(0xf1cfa5);
- const lap=ML(new THREE.SphereGeometry(.62,20,12),robe,0,.42,0);lap.scale.set(1,.55,.9);
- g.add(lap,ML(new THREE.CylinderGeometry(.24,.4,.75,18),robe,0,.95,0),ML(new THREE.SphereGeometry(.27,20,16),skin,0,1.58,0),
-  ML(new THREE.SphereGeometry(.1,10,8),skin,0,.62,.42),ML(new THREE.SphereGeometry(.2,14,10),M(0xb85f1c),0,1.3,0));
- return g}
-function avatar(uid,code,mine){
- const g=new THREE.Group();
- g.add(AVM?fitTo(AVM.clone(true),1.7):monk());
- g.add(ML(new THREE.CylinderGeometry(.62,.7,.12,24),M(0xd96a8a),0,.06,0));
- for(let i=0;i<8;i++){const a=i/8*6.283,p=ML(new THREE.SphereGeometry(.2,10,8),M(0xf0a0b8),Math.cos(a)*.7,.12,Math.sin(a)*.7);p.scale.set(1,.45,.6);p.rotation.y=-a;g.add(p)}
- if(mine){const r=ML(new THREE.TorusGeometry(.9,.04,8,32),new THREE.MeshBasicMaterial({color:0xe8b23a}),0,.05,0);r.rotation.x=Math.PI/2;g.add(r)}
- g.add(label(code,mine));g.children[g.children.length-1].position.y=2.1;
- const h=hash(uid),a=(h%360)*Math.PI/180,r=2.4+((h>>9)%4)*1.1;
- g.position.set(Math.cos(a)*r,0,Math.sin(a)*r+1.5);return g}
-function procTemple(){
- const g=new THREE.Group(),red=M(0x8a2f25),gold=M(0xc99a2e),dark=M(0x4a1f1a);
- g.add(ML(new THREE.BoxGeometry(6.6,.3,3.8),M(0x7d7468),0,.15,0),ML(new THREE.BoxGeometry(4.6,1.8,2.6),red,0,1.2,0));
- for(const x of[-2,-.8,.8,2])g.add(ML(new THREE.CylinderGeometry(.14,.14,1.8,12),gold,x,1.2,1.5));
- g.add(ML(new THREE.BoxGeometry(1,1.4,.1),new THREE.MeshBasicMaterial({color:0xf0b84a}),0,1,1.32));
- const r1=ML(new THREE.ConeGeometry(3.7,1.2,4),dark,0,2.7,0);r1.rotation.y=Math.PI/4;r1.scale.z=.78;
- const r2=ML(new THREE.ConeGeometry(2.6,1.1,4),dark,0,4.65,0);r2.rotation.y=Math.PI/4;r2.scale.z=.78;
- g.add(r1,ML(new THREE.BoxGeometry(3,.8,2),red,0,3.7,0),r2,ML(new THREE.SphereGeometry(.16,12,10),gold,0,5.35,0));
- for(const x of[-2.8,2.8]){g.add(ML(new THREE.SphereGeometry(.22,12,10),new THREE.MeshBasicMaterial({color:0xffb050}),x,1.4,1.9));const l=new THREE.PointLight(0xffb050,1.2,9);l.position.set(x,1.5,2);g.add(l)}
- return g}
-function buildScene(t){
- const sc=new THREE.Scene();sc.background=new THREE.Color(0x0d1226);sc.fog=new THREE.Fog(0x0d1226,16,40);
- sc.add(new THREE.HemisphereLight(0xffe2b0,0x1a2040,1));
- const dl=new THREE.DirectionalLight(0xffd9a0,.7);dl.position.set(3,6,4);sc.add(dl);
- let o=ML(new THREE.CircleGeometry(16,48),M(0x24301f),0,0,0);o.rotation.x=-Math.PI/2;sc.add(o);
- o=ML(new THREE.CircleGeometry(8,48),M(0x6b5a48),0,.01,0);o.rotation.x=-Math.PI/2;sc.add(o);
- const dec=new THREE.Group(),p=[];
- for(let i=0;i<300;i++){const a=Math.random()*6.283;p.push(Math.cos(a)*30,5+Math.random()*16,Math.sin(a)*30)}
- dec.add(new THREE.Points(new THREE.BufferGeometry().setAttribute("position",new THREE.Float32BufferAttribute(p,3)),new THREE.PointsMaterial({color:0xfff2cc,size:.15,fog:false})));
- dec.add(ML(new THREE.SphereGeometry(1.6,24,16),new THREE.MeshBasicMaterial({color:0xfff1c9,fog:false}),-12,13,-26));
- for(let i=0;i<9;i++){const a=i/9*6.283;dec.add(ML(new THREE.ConeGeometry(5+Math.random()*3,7+Math.random()*5,5),M(0x1b2340),Math.cos(a)*24,3,Math.sin(a)*24))}
- sc.add(dec);
- for(let i=0;i<14;i++){const a=(i+Math.random()*.6)/14*6.283,r=10+Math.random()*2.5,tr=new THREE.Group();
-  tr.add(ML(new THREE.CylinderGeometry(.12,.16,1,8),M(0x4a3426),0,.5,0),ML(new THREE.ConeGeometry(.9,1.8,8),M(0x1f4a33),0,1.7,0),ML(new THREE.ConeGeometry(.65,1.4,8),M(0x2a5d41),0,2.7,0));
-  tr.position.set(Math.cos(a)*r,0,Math.sin(a)*r);sc.add(tr)}
- const tp=procTemple();tp.position.z=-4.8;sc.add(tp);
- const T2=T[t.id]||t;
- if(T2.bg)new THREE.TextureLoader().loadAsync(T2.bg).then(x=>{x.mapping=THREE.EquirectangularReflectionMapping;x.colorSpace=THREE.SRGBColorSpace;sc.background=x;sc.fog=null;sc.remove(dec)}).catch(()=>{});
- if(T2.model)new GLTFLoader().loadAsync(T2.model).then(g=>{sc.remove(tp);const m=fitTo(g.scene,0,6.5);m.position.z=-4.8;sc.add(m)}).catch(()=>{});
- return sc}
+/* ===== 7. SẢNH CHÙA 2D + NGƯỜI THẬT ===== */
+const ASSET="assets/hall/";
+function probe(src,cb){const i=new Image();i.onload=()=>cb(true);i.onerror=()=>cb(false);i.src=src}
+const FB_BG=`<svg viewBox="0 0 360 640" preserveAspectRatio="xMidYMid slice"><defs><radialGradient id="hl"><stop offset="0" stop-color="#ffe08a"/><stop offset="1" stop-color="#ffe08a" stop-opacity="0"/></radialGradient><linearGradient id="wl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4a120b"/><stop offset="1" stop-color="#8a3414"/></linearGradient><linearGradient id="fl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a1608"/><stop offset="1" stop-color="#1c0a04"/></linearGradient></defs><rect width="360" height="340" fill="url(#wl)"/><rect y="330" width="360" height="310" fill="url(#fl)"/><circle cx="180" cy="200" r="130" fill="url(#hl)"/><g fill="#e8b23a"><ellipse cx="180" cy="262" rx="78" ry="52"/><path d="M118 262 Q180 150 242 262Z"/><circle cx="180" cy="168" r="27" fill="#f6d27a"/></g><ellipse cx="180" cy="285" rx="100" ry="14" fill="#c98a24"/><rect x="30" y="300" width="300" height="44" fill="#5a1a0d" stroke="#c99a2e" stroke-width="3"/><g fill="#f7efe0"><circle cx="70" cy="296" r="9"/><circle cx="90" cy="300" r="8"/><circle cx="290" cy="296" r="9"/><circle cx="270" cy="300" r="8"/></g><polygon points="150,344 210,344 300,640 60,640" fill="#a3261c"/><polygon points="150,344 156,344 90,640 60,640" fill="#d9a441"/><polygon points="204,344 210,344 300,640 270,640" fill="#d9a441"/><g fill="#7a1c10"><rect x="0" y="40" width="26" height="520"/><rect x="334" y="40" width="26" height="520"/></g><g fill="#e2552b"><circle cx="52" cy="90" r="16"/><circle cx="308" cy="90" r="16"/><circle cx="52" cy="150" r="13"/><circle cx="308" cy="150" r="13"/></g></svg>`;
+const FB_MONK=`<svg viewBox="0 0 100 100"><ellipse cx="50" cy="90" rx="42" ry="9" fill="#9c1f18"/><path d="M18 88 Q22 48 50 46 Q78 48 82 88Z" fill="#8a8d93"/><path d="M34 62 Q50 74 66 62" stroke="#6d7077" stroke-width="3" fill="none"/><circle cx="50" cy="32" r="20" fill="#f6d9b4"/><path d="M41 32 q4 3 8 0M53 32 q4 3 8 0" stroke="#5a3a28" stroke-width="2" fill="none"/><ellipse cx="50" cy="73" rx="9" ry="5" fill="#f6d9b4"/></svg>`;
+const SLOTS=(()=>{const a=[];for(let r=0;r<6;r++)for(const sd of[0,1])for(let c=0;c<3;c++){const x=[9,20,31][c]+(r%2?4:0);a.push({x:sd?100-x:x,y:52+r*6.8,s:.62+r*.076,r})}return a})();
+const fxEl=(c,css,ms)=>{const e=document.createElement("div");e.className=c;e.style.cssText=css;$("fx").appendChild(e);setTimeout(()=>e.remove(),ms);return e};
+const fxSmoke=()=>{for(let i=0;i<7;i++)fxEl("smoke",`left:${44+Math.random()*10}%;top:60%;animation-delay:${i*.35}s`,5000)};
+const fxRing=()=>fxEl("ring","",1700);
+const fxPetals=()=>{for(let i=0;i<10;i++)fxEl("petal",`left:${Math.random()*95}%;animation-delay:${Math.random()*1.5}s`,5600).textContent="🌸"};
+function ding(){if(muted)return;try{const c=window._ac||(window._ac=new (window.AudioContext||window.webkitAudioContext)()),t=c.currentTime,g=c.createGain();c.resume();g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.35,t+.02);g.gain.exponentialRampToValueAtTime(.0001,t+4);g.connect(c.destination);[[196,1],[392,.4],[527,.2]].forEach(([f,v])=>{const o=c.createOscillator(),og=c.createGain();o.frequency.value=f;og.gain.value=v;o.connect(og);og.connect(g);o.start(t);o.stop(t+4.2)})}catch(e){}}
+const ACT={incense:{say:"vừa thắp hương",fx:fxSmoke},bell:{say:"vừa gõ chuông",fx:()=>{fxRing();ding()}},flower:{say:"vừa dâng hoa",fx:fxPetals}};
 async function enterHall(t){
  const mine=await Store.visits(user.uid),today=new Date().setHours(0,0,0,0);
  const earned=mine.filter(v=>v.start>=today).reduce((s,v)=>s+v.points,0);
- const r=Store.enter(t.id,user.uid,prof.code);
- $("hall").classList.remove("hidden");$("hn").textContent=t.n;
- const cv=$("cv"),rd=new THREE.WebGLRenderer({canvas:cv,antialias:true});rd.setPixelRatio(Math.min(devicePixelRatio,2));
- const sc=buildScene(t);
- const cam=new THREE.PerspectiveCamera(55,1,.1,60);let az=0,el=.45,dist=10,drag=null;
- const place=()=>{cam.position.set(Math.sin(az)*dist*Math.cos(el),dist*Math.sin(el)+1,Math.cos(az)*dist*Math.cos(el)+1);cam.lookAt(0,1.8,-.5)};
- cv.onpointerdown=e=>drag=[e.clientX,e.clientY];cv.onpointerup=()=>drag=null;
- cv.onpointermove=e=>{if(!drag)return;az-=(e.clientX-drag[0])*.006;el=Math.max(.15,Math.min(1.2,el+(e.clientY-drag[1])*.004));drag=[e.clientX,e.clientY]};
- const fit=()=>{rd.setSize(innerWidth,innerHeight,false);cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();dist=cam.aspect<1?14:10};
- addEventListener("resize",fit);fit();
- const av={};
+ const r=Store.enter(t.id,user.uid,prof.code,prof.points||0);
+ $("hall").classList.remove("hidden");$("hn").textContent=t.n;$("pt").textContent="Công đức: "+(prof.points||0);
+ const st=$("stage"),fit=()=>st.style.setProperty("--u",st.clientWidth/100+"px");addEventListener("resize",fit);fit();
+ const bg=$("bg"),url=(T[t.id]||t).bg||ASSET+"bg.webp";bg.style.backgroundImage="";bg.innerHTML=FB_BG;
+ probe(url,ok=>{if(ok&&hallState&&hallState.t.id==t.id){bg.innerHTML="";bg.style.backgroundImage=`url("${url}")`}});
+ let mimg=null,peers={},first=true;const seatOf={},used=new Set(),last={};
+ const body=()=>mimg?`<img src="${mimg}" alt="" draggable="false">`:FB_MONK;
+ const render=()=>{const box=$("seats");box.textContent="";
+  Object.keys(peers).sort((a,b)=>SLOTS[seatOf[a]].y-SLOTS[seatOf[b]].y).forEach(u=>{
+   const s=SLOTS[seatOf[u]],e=document.createElement("div");e.className="p"+(u==user.uid?" me":"");e.style.cssText=`left:${s.x}%;top:${s.y}%;--s:${s.s};z-index:${s.r}`;
+   const n=document.createElement("span");n.className="nm";n.textContent=peers[u].code;
+   const b=document.createElement("div");b.className="b";b.innerHTML=body();e.append(n,b);box.appendChild(e)})};
+ probe(ASSET+"monk.webp",ok=>{if(ok){mimg=ASSET+"monk.webp";render()}});
+ const rank=()=>{const k=$("rank");k.innerHTML="<b>Bảng công đức</b>";
+  Object.values(peers).sort((a,b)=>(b.pts||0)-(a.pts||0)).slice(0,5).forEach((p,i)=>{const d=document.createElement("div"),a=document.createElement("span"),c=document.createElement("span");a.textContent=(i+1)+". "+p.code;c.textContent=p.pts||0;d.append(a,c);k.appendChild(d)})};
+ const say=m=>{const s=document.createElement("span");s.textContent=m;const f=$("feed");f.appendChild(s);while(f.children.length>3)f.firstChild.remove();setTimeout(()=>s.remove(),6000)};
+ const place=u=>{let i=hash(u)%SLOTS.length,n=0;while(used.has(i)&&n<SLOTS.length){i=(i+1)%SLOTS.length;n++}used.add(i);seatOf[u]=i};
  const un=Store.watch(`presence/${t.id}`,d=>{
-  for(const u in av)if(!d[u]){sc.remove(av[u]);delete av[u]}
-  for(const u in d)if(!av[u]){av[u]=avatar(u,d[u].code,u==user.uid);sc.add(av[u])}
-  $("hc").textContent=Object.keys(d).length+" người đang có mặt"});
- const t0=Date.now();let raf;
- const loop=()=>{raf=requestAnimationFrame(loop);if(!drag)az+=.0008;place();rd.render(sc,cam);
-  const s=Math.floor((Date.now()-t0)/1000);$("tm").textContent=`Đã ở chùa ${Math.floor(s/60)}:${String(s%60).padStart(2,"0")}`};
- loop();
- hallState={r,t,t0,earned,stop(){cancelAnimationFrame(raf);un();removeEventListener("resize",fit);rd.dispose()}};
+  for(const u in peers)if(!d[u]){used.delete(seatOf[u]);delete seatOf[u];delete last[u]}
+  for(const u in d){
+   if(seatOf[u]==null){place(u);if(!first&&u!=user.uid)say(d[u].code+" vừa vào chùa")}
+   const a=d[u].act;if(a&&ACT[a.k]&&a.ts!=last[u]){if(!first&&u!=user.uid){say(d[u].code+" "+ACT[a.k].say);ACT[a.k].fx()}last[u]=a.ts}}
+  peers=d;first=false;render();rank();$("hc").textContent=Object.keys(d).length+" phật tử đang lễ"});
+ let cd=0;
+ document.querySelectorAll(".acts [data-a]").forEach(b=>b.onclick=()=>{if(Date.now()<cd)return;cd=Date.now()+2000;const k=b.dataset.a;ACT[k].fx();say("Bạn "+ACT[k].say);Store.act(r,{k,ts:Date.now()}).catch(()=>{})});
+ const t0=Date.now(),iv=setInterval(()=>{const s=Math.floor((Date.now()-t0)/1000);$("tm").textContent=`· ${Math.floor(s/60)}:${String(s%60).padStart(2,"0")}`},1000);
+ hallState={r,t,t0,earned,stop(){clearInterval(iv);un();removeEventListener("resize",fit);["seats","fx","feed"].forEach(i=>$(i).textContent="")}};
 }
 $("leave").onclick=leaveHall;
 addEventListener("pagehide",()=>{if(hallState)Store.leave(hallState.r)});
